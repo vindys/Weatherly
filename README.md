@@ -24,7 +24,7 @@ Architecture followed is as follows:
   
 <img src="/screenshots/work_model.png" width =800/>
 
-TODO in plan:
+TODO:
 
   * JUnit tests
   * Better Error handling 
