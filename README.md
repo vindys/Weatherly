@@ -8,15 +8,14 @@ Weatherly is an android app which would pull weather forecast from http://openwe
 
 Architecture followed is as follows:
 
-  * Application has a LoadWeatherWorker (https://developer.android.com/reference/androidx/work/ListenableWorker) which runs as Per between 2 hours - 2.30 hours 
-
-  * Run a worker LoadWeatherWorker every 2 hours and check for the latest location using FusedLocationProviderClient. 
-  * Upon getting latest location it would save the latest location into location table in room entity (Location.java). 
-  * MainActivity would be observing the changes in WeatherViewModel which holds the Livedata for location and forecast. 
-  * On change in location in Viewmodel, Transformation sends forecast request to repository. 
-  * We use NetworkBoundResource implementation to handle persistance better. 
-  * We would check shouldFetch and decide whether to go for remoteDatasource or local datasource call. 
-  * Once we get response from the remoteDataSource we will save the data in database and will return as Livedata. 
+  * Application has a LoadWeatherWorker which is loaded by a periodicWorkRequest enqueued to run between 2 hours - 2.30 hours when constraint Unmetered network is available. 
+  * LoadWeatherWorker check for the latest location using FusedLocationProviderClient. 
+  * Upon getting latest location it will use Retrofit to load data from API providing location and APIKEY. APIKEY is added to the request from Interceptor. 
+  * When response is received from server, worker will call repository to save the data to Room Database. We will run a transaction which will delete earlier data from db and insert new Forecast data. 
+  * We will observe the response of db operation and if we get a success from repository, we would set Result.Success to SettableFuture. When startWork receives Success in mFuture worker will be considered successful and won't try for retry. If any step fails, we will pass Result.failure and worker will be retried after specified time. 
+  * MainActivity would be observing the changes in WeatherViewModel which holds the Livedata for forecast. 
+  * On change in location in Viewmodel which in turn will keep listening to Repository's LiveData for forecast. 
+  * Repository will be observing Dao to get update in forecast_response and will pass result as Livedata. 
   * We are displaying the response using databinding in recyclerview and other UI controls.
   * Dependency is provided by Dagger2.
   
@@ -24,7 +23,7 @@ Architecture followed is as follows:
 
 TODO in plan:
 
-  * JUnit tests 
+  * JUnit tests
   * Better Error handling 
   * UI Fixes: Group forecast data according to date rather than simple 3 hour data list. Each item can be clickable to view details in a horizontal list or so. 
   
